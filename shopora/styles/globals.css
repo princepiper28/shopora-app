@@ -1,21 +1,47 @@
+/* 🌐 Import Google Fonts (Inter + Poppins) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap");
+
+/* Tailwind Directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 🌐 Import Google Fonts (Inter + Poppins) */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap");
-
-/* 🛍️ Shopora global styles */
-:root {
-  --color-primary: #2563eb; /* shopora blue */
-  --color-accent: #f97316;  /* shopora orange */
-}
-
+/* ✅ Global Reset */
+html,
 body {
-  @apply font-sans bg-gray-50 text-gray-900;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* prevent sideways scroll */
+  font-family: 'Inter', sans-serif;
+  background-color: #f9fafb;
+  color: #111827;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  @apply font-display text-gray-900;
+/* ✅ Ensure all sections are centered and responsive */
+#__next {
+  width: 100%;
+  height: 100%;
+}
+
+/* ✅ Responsive container fix */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ✅ Fix image scaling */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ✅ Remove weird zoom or default padding */
+* {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
 }
 
