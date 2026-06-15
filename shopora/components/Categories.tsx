@@ -1,37 +1,115 @@
+"use client";
+
 import { motion } from "framer-motion";
 
-const categories = [
-  { name: "Electronics", emoji: "💻" },
-  { name: "Fashion", emoji: "👕" },
-  { name: "Jewelry", emoji: "💎" },
-  { name: "Home", emoji: "🏠" },
-  { name: "Sports", emoji: "🏀" },
-];
-
-interface CategoriesProps {
-  onSelect: (category: string) => void;
-  activeCategory: string;
+interface Props {
+  active: string;
+  onChange: (category: string) => void;
 }
 
-export default function Categories() {
-  return (
-    <section className="mb-12">
-      <h2 className="text-xl font-semibold mb-4">Shop by Category</h2>
+const categories = [
+  { name: "All", emoji: "🛍️" },
+  { name: "Electronics", emoji: "💻" },
+  { name: "Fashion", emoji: "👕" },
+  { name: "Men", emoji: "👔" },
+  { name: "Women", emoji: "👗" },
+  { name: "Kids", emoji: "🧸" },
+  { name: "Jewelry", emoji: "💎" },
+  { name: "Home", emoji: "🏠" },
+  { name: "Sports", emoji: "⚽" },
+  { name: "Gaming", emoji: "🎮" },
+  { name: "Beauty", emoji: "💄" },
+  { name: "Industrial", emoji: "🏭" },
+  { name: "Crafts", emoji: "🎨" },
+  { name: "Office", emoji: "🖨️" },
+  { name: "Musical", emoji: "🎵" },
+  { name: "Appliances", emoji: "🧊" },
+  { name: "Food", emoji: "🍔" },
+  { name: "Books", emoji: "📚" },
+];
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-        {categories.map((cat, i) => (
-          <motion.div
-            key={cat.name}
-            whileHover={{ scale: 1.05 }}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="bg-white rounded-2xl p-6 text-center shadow hover:shadow-lg cursor-pointer"
-          >
-            <div className="text-3xl mb-2">{cat.emoji}</div>
-            <p className="font-medium">{cat.name}</p>
-          </motion.div>
-        ))}
+export default function Categories({ active, onChange }: Props) {
+  return (
+    <section className="mb-10">
+      {/* Heading */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-extrabold text-gray-900">
+            Shop by Category
+          </h2>
+
+          <p className="text-sm text-gray-500 mt-1">
+            Explore products by category
+          </p>
+        </div>
+      </div>
+
+      {/* Categories */}
+      <div
+        className="
+          flex items-center gap-4
+          overflow-x-auto
+          whitespace-nowrap
+          scrollbar-hide
+          snap-x snap-mandatory
+          scroll-smooth
+          py-2
+        "
+      >
+        {categories.map((cat, i) => {
+          const isActive = active === cat.name;
+
+          return (
+            <motion.button
+              key={cat.name}
+              onClick={() => onChange(cat.name)}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              whileHover={{
+                scale: 1.06,
+                y: -2,
+              }}
+              whileTap={{ scale: 0.95 }}
+              className={`
+                snap-start flex-shrink-0
+                flex items-center gap-3
+                px-5 py-3 rounded-2xl
+                border transition-all duration-300
+                backdrop-blur-xl
+                shadow-sm hover:shadow-lg
+                ${
+                  isActive
+                    ? `
+                      bg-gradient-to-r
+                      from-[#4F6EF7]
+                      to-[#3B5BDB]
+                      text-white
+                      border-transparent
+                      shadow-blue-200
+                    `
+                    : `
+                      bg-white/80
+                      text-gray-700
+                      border-gray-200
+                      hover:border-[#4F6EF7]
+                      hover:text-[#4F6EF7]
+                    `
+                }
+              `}
+            >
+              {/* Emoji */}
+              <span className="text-lg">
+                {cat.emoji}
+              </span>
+
+              {/* Name */}
+              <span className="text-sm font-semibold">
+                {cat.name}
+              </span>
+            </motion.button>
+          );
+        })}
       </div>
     </section>
   );

@@ -41,26 +41,9 @@ export default function Home({ products = [] }: HomeProps) {
 
       <main className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
           <Hero />
-          <Categories />
-        {/* filter */}
-        <section className="mb-6 sticky top-16 z-20 bg-white/90 backdrop-blur-sm p-4 rounded-md border border-gray-100">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-            <input
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
-              placeholder="Search products..."
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-shopora-accent"
-            />
-            <select
-              value={category}
-              onChange={(e) => { setCategory(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 rounded-lg border border-gray-200"
-            >
-              {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
-            </select>
-          </div>
-        </section>
-
+          <Categories active={""} onChange={function (): void {
+          throw new Error("Function not implemented.");
+        } } />
         {/* grid */}
         <section>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
