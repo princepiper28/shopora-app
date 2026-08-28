@@ -1,8 +1,12 @@
 // components/CartContext.tsx
+"use client";
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Product } from "@/types/product";
 
-export interface CartItem extends Product { quantity: number; }
+export interface CartItem extends Product {
+  quantity: number;
+}
 
 interface CartContextValue {
   cart: CartItem[];
@@ -11,24 +15,32 @@ interface CartContextValue {
   updateQuantity: (id: number, q: number) => void;
   clearCart: () => void;
 }
+
 const CartContext = createContext<CartContextValue | null>(null);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem("shopora_cart");
     if (s) setCart(JSON.parse(s));
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("shopora_cart", JSON.stringify(cart));
-  }, [cart]);
+    if (hydrated) {
+      localStorage.setItem("shopora_cart", JSON.stringify(cart));
+    }
+  }, [cart, hydrated]);
 
   function addToCart(p: Product) {
     setCart((prev) => {
       const ex = prev.find((i) => i.id === p.id);
-      if (ex) return prev.map((i) => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
+      if (ex)
+        return prev.map((i) =>
+          i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i
+        );
       return [...prev, { ...p, quantity: 1 }];
     });
   }
@@ -38,7 +50,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   function updateQuantity(id: number, q: number) {
-    setCart((prev) => prev.map((i) => i.id === id ? { ...i, quantity: Math.max(1, q) } : i));
+    setCart((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, quantity: Math.max(1, q) } : i))
+    );
   }
 
   function clearCart() {
@@ -46,7 +60,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart }}>
+    <CartContext.Provider
+      value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart }}
+    >
       {children}
     </CartContext.Provider>
   );

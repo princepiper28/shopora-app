@@ -1,30 +1,57 @@
 // components/WishlistContext.tsx
+"use client";
+
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Product } from "@/types/product";
 
 interface WishlistContextValue {
-  wishlist: number[];
-  toggleWishlist: (id: number) => void;
+  wishlist: Product[];
+  toggleWishlist: (p: Product) => void;
+  removeFromWishlist: (id: number) => void;
+  isInWishlist: (id: number) => boolean;
 }
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
 
 export const WishlistProvider = ({ children }: { children: React.ReactNode }) => {
-  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem("shopora_wishlist");
     if (s) setWishlist(JSON.parse(s));
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("shopora_wishlist", JSON.stringify(wishlist));
-  }, [wishlist]);
+    if (hydrated) {
+      localStorage.setItem("shopora_wishlist", JSON.stringify(wishlist));
+    }
+  }, [wishlist, hydrated]);
 
-  function toggleWishlist(id: number) {
-    setWishlist((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  function toggleWishlist(p: Product) {
+    setWishlist((prev) =>
+      prev.some((i) => i.id === p.id)
+        ? prev.filter((i) => i.id !== p.id)
+        : [...prev, p]
+    );
   }
 
-  return <WishlistContext.Provider value={{ wishlist, toggleWishlist }}>{children}</WishlistContext.Provider>;
+  function removeFromWishlist(id: number) {
+    setWishlist((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  function isInWishlist(id: number) {
+    return wishlist.some((i) => i.id === id);
+  }
+
+  return (
+    <WishlistContext.Provider
+      value={{ wishlist, toggleWishlist, removeFromWishlist, isInWishlist }}
+    >
+      {children}
+    </WishlistContext.Provider>
+  );
 };
 
 export const useWishlist = () => {
