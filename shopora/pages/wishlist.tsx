@@ -10,8 +10,9 @@ import { Product } from "@/types/product";
 
 export default function WishlistPage({ products }: { products: Product[] }) {
   const { wishlist } = useWishlist();
-  const favorites = products.filter((p) => wishlist.includes(p.id));
-
+  const favorites = products.filter((product) =>
+  wishlist.some((item) => item.id === product.id));
+  
   return (
     <>
       <Head><title>Wishlist — Shopora</title></Head>

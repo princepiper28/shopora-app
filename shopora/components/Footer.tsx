@@ -7,7 +7,7 @@ import {
   Youtube,
 } from "lucide-react";
 
-export default function Footer(): JSX.Element {
+export default function Footer() {
   return (
     <footer className="w-full bg-[#0F172A] text-white px-4 py-12">
       <div className="max-w-7xl mx-auto">

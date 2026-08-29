@@ -108,8 +108,8 @@ export default function CartPage() {
             Your cart is empty
           </h2>
           <p className="text-sm text-gray-500 max-w-sm mb-6">
-            Looks like you haven't added anything yet. Explore our products
-            and find something you'll love.
+            Looks like you haven&apos;t added anything yet. Explore our products
+            and find something you You&apos;re going to love.
           </p>
 
           <Link
