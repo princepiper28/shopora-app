@@ -3,7 +3,7 @@ import Head from "next/head";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useWishlist } from "@/components/WishlistContext";
-import { fetchProducts } from "@/lib/api";
+import { fetchAllProducts } from "@/lib/api";
 import { GetServerSideProps } from "next";
 import ProductCard from "@/components/ProductCard";
 import { Product } from "@/types/product";
@@ -34,6 +34,6 @@ export default function WishlistPage({ products }: { products: Product[] }) {
 }
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  const products = await fetchProducts();
+  const products = await fetchAllProducts();
   return { props: { products } };
 };

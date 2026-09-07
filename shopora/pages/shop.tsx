@@ -6,14 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
 import { Product } from "@/types/product";
 import ProductCard from "@/components/ProductCard";
+import Categories from "@/components/Categories";
+import { fetchAllProducts, mapToDisplayCategory } from "@/lib/api";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  all: "All Categories",
-  electronics: "Electronics",
-  jewelery: "Jewelery",
-  "men's clothing": "Men's Clothing",
-  "women's clothing": "Women's Clothing",
-};
+const ALL_SECTION_LIMIT = 150;
 
 export default function ShopPage() {
   const router = useRouter();
@@ -22,31 +18,34 @@ export default function ShopPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
-    fetch("https://fakestoreapi.com/products")
-      .then((res) => res.json())
-      .then((data: Product[]) => setProducts(data))
-      .catch(() => setProducts([]))
+    fetchAllProducts()
+      .then(setProducts)
+      .catch((err) => {
+        console.error(err);
+        setProducts([]);
+      })
       .finally(() => setLoading(false));
   }, []);
-
-  const categories = useMemo(() => {
-    const unique = Array.from(new Set(products.map((p) => p.category)));
-    return ["all", ...unique];
-  }, [products]);
 
   const filtered = useMemo(() => {
     let list = products;
 
-    if (activeCategory !== "all") {
-      list = list.filter((p) => p.category === activeCategory);
+    if (activeCategory !== "All") {
+      list = list.filter(
+        (p) => mapToDisplayCategory(p.category) === activeCategory
+      );
     }
 
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter((p) => p.title.toLowerCase().includes(q));
+    }
+
+    if (activeCategory === "All" && !searchQuery.trim()) {
+      list = list.slice(0, ALL_SECTION_LIMIT);
     }
 
     return list;
@@ -69,30 +68,9 @@ export default function ShopPage() {
       </div>
 
       {/* =========================
-          Category Tabs
+          Categories
       ========================= */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`
-              px-4 py-2
-              rounded-full
-              text-sm font-medium
-              capitalize
-              transition-colors
-              ${
-                activeCategory === cat
-                  ? "bg-[#4F6EF7] text-white"
-                  : "bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-white/20"
-              }
-            `}
-          >
-            {CATEGORY_LABELS[cat] ?? cat}
-          </button>
-        ))}
-      </div>
+      <Categories active={activeCategory} onChange={setActiveCategory} />
 
       {/* =========================
           Loading State
@@ -138,7 +116,7 @@ export default function ShopPage() {
           <p className="text-sm text-gray-500 max-w-sm">
             {searchQuery
               ? `We couldn't find anything matching "${searchQuery}".`
-              : "Try a different category."}
+              : "We don't have products in this category yet — check back soon."}
           </p>
         </div>
       ) : (

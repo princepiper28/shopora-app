@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useWishlist } from "./WishlistContext";
-import { fetchProducts } from "@/lib/api";
+import { fetchAllProducts } from "@/lib/api";
 import { Product } from "@/types/product";
 
 interface WishlistDrawerProps {
@@ -22,7 +22,7 @@ export default function WishlistDrawer({
   useEffect(() => {
     async function loadWishlistItems() {
       try {
-        const products = await fetchProducts();
+        const products = await fetchAllProducts();
 
         const wishlistProducts = products.filter((product) =>
           wishlist.some((item) => item.id === product.id)

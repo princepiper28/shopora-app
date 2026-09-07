@@ -2,10 +2,12 @@
 
 import { motion, AnimatePresence, useInView, Variants } from "framer-motion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { Search, ArrowRight, Sparkles } from "lucide-react";
 import { Product } from "@/types/product";
+import Link from "next/link";
+import { fetchAllProducts } from "@/lib/api";
 
 const showcaseProducts = [
   {
@@ -38,9 +40,6 @@ const showcaseProducts = [
   },
 ];
 
-/* =========================
-   Heading animation variants
-========================= */
 const headingContainer: Variants = {
   hidden: {},
   show: {
@@ -61,9 +60,6 @@ const headingLine: Variants = {
   },
 };
 
-/* =========================
-   Animated number (Brands / Delivery)
-========================= */
 function AnimatedNumber({
   target,
   suffix,
@@ -105,9 +101,6 @@ function AnimatedNumber({
   );
 }
 
-/* =========================
-   Products counter — 1 -> 999 -> 1K...10K+
-========================= */
 function ProductsCounter({ isInView }: { isInView: boolean }) {
   const [display, setDisplay] = useState("0");
 
@@ -149,9 +142,6 @@ const metrics = [
   { label: "Delivery", target: 24, suffix: "H" },
 ];
 
-/* =========================
-   Mobile product carousel — small card, sits beside the heading
-========================= */
 function MobileShowcase() {
   const [index, setIndex] = useState(0);
 
@@ -220,7 +210,7 @@ export default function Hero() {
   const metricsInView = useInView(metricsRef, { once: true, margin: "-80px" });
 
   /* =========================
-     Live search
+     Live search — now backed by the shared fetchAllProducts()
   ========================= */
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -229,10 +219,12 @@ export default function Hero() {
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("https://fakestoreapi.com/products")
-      .then((res) => res.json())
-      .then((data: Product[]) => setAllProducts(data))
-      .catch(() => setAllProducts([]))
+    fetchAllProducts()
+      .then(setAllProducts)
+      .catch((err) => {
+        console.error(err);
+        setAllProducts([]);
+      })
       .finally(() => setLoadingProducts(false));
   }, []);
 
@@ -247,9 +239,14 @@ export default function Hero() {
   }, []);
 
   const trimmedQuery = query.trim().toLowerCase();
+  const queryWords = trimmedQuery.split(/\s+/).filter(Boolean);
+
   const results = trimmedQuery
     ? allProducts
-        .filter((p) => p.title.toLowerCase().includes(trimmedQuery))
+        .filter((p) => {
+          const haystack = `${p.title} ${p.category} ${p.description ?? ""}`.toLowerCase();
+          return queryWords.every((word) => haystack.includes(word));
+        })
         .slice(0, 6)
     : [];
 
@@ -281,10 +278,6 @@ export default function Hero() {
         items-center
       "
     >
-      {/* =====================================================
-          BACKGROUND EFFECTS
-      ====================================================== */}
-
       <div
         className="
           pointer-events-none
@@ -322,10 +315,6 @@ export default function Hero() {
         "
       />
 
-      {/* =====================================================
-          CONTENT
-      ====================================================== */}
-
       <div
         className="
           relative
@@ -348,18 +337,12 @@ export default function Hero() {
             lg:gap-8
           "
         >
-          {/* =================================================
-              LEFT SIDE
-          ================================================== */}
-
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
             className="relative z-20"
           >
-            {/* Announcement */}
-
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -384,8 +367,6 @@ export default function Hero() {
               <Sparkles size={14} className="text-blue-300" />
               New arrivals every week
             </motion.div>
-
-            {/* Heading + mobile carousel side-by-side on small screens */}
 
             <div className="flex flex-row items-center gap-4 lg:block">
               <motion.h1
@@ -439,8 +420,6 @@ export default function Hero() {
               <MobileShowcase />
             </div>
 
-            {/* Description */}
-
             <p
               className="
                 mt-5
@@ -455,8 +434,6 @@ export default function Hero() {
               and exclusive deals crafted for modern
               shopping.
             </p>
-
-            {/* Search */}
 
             <div ref={searchRef} className="relative mt-6 max-w-xl">
               <div
@@ -519,7 +496,6 @@ export default function Hero() {
                 </button>
               </div>
 
-              {/* Live results dropdown */}
               <AnimatePresence>
                 {isFocused && trimmedQuery && (
                   <motion.div
@@ -601,8 +577,6 @@ export default function Hero() {
               </AnimatePresence>
             </div>
 
-            {/* Trending */}
-
             <div
               className="
                 mt-3
@@ -622,10 +596,9 @@ export default function Hero() {
               <span>Watches</span>
             </div>
 
-            {/* CTA */}
-
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
+              <Link
+                href="/shop"
                 className="
                   rounded-xl
                   bg-white
@@ -637,13 +610,14 @@ export default function Hero() {
                   transition
                   hover:scale-[1.03]
                   hover:bg-blue-50
-                "
+                  "
               >
                 Shop Now
-              </button>
+              </Link>
 
-              <button
-                className="
+              <Link
+                href="/deals"
+                 className="
                   rounded-xl
                   border
                   border-white/15
@@ -659,10 +633,8 @@ export default function Hero() {
                 "
               >
                 Best Deals
-              </button>
+              </Link>
             </div>
-
-            {/* Metrics */}
 
             <div ref={metricsRef} className="mt-7 flex items-center gap-7 sm:gap-10">
               {metrics.map((item, index) => (
@@ -692,10 +664,6 @@ export default function Hero() {
               ))}
             </div>
           </motion.div>
-
-          {/* =================================================
-              RIGHT SIDE — PRODUCT SHOWCASE (desktop only)
-          ================================================== */}
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

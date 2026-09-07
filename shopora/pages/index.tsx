@@ -1,36 +1,70 @@
 // pages/index.tsx
-import { GetServerSideProps } from "next";
 import Head from "next/head";
-import { fetchProducts } from "@/lib/api";
 import { Product } from "@/types/product";
 import ProductCard from "@/components/ProductCard";
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Hero from "@/components/Hero";
 import Categories from "@/components/Categories";
+import { fetchAllProducts, mapToDisplayCategory } from "@/lib/api";
 
-interface HomeProps {
-  products: Product[];
-}
+const BATCH_SIZE = 22;
 
-export default function Home({ products = [] }: HomeProps) {
-  const [query, setQuery] = useState("");
+export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query,] = useState("");
   const [category, setCategory] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 22;
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
 
-  const filtered = products.filter((p) => {
-    const matchesQuery = p.title.toLowerCase().includes(query.toLowerCase());
-    const matchesCategory =
-      category === "All" || p.category.toLowerCase() === category.toLowerCase();
-    return matchesQuery && matchesCategory;
-  });
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const categories = ["All", ...Array.from(new Set(products.map((p) => p.category)))];
+  useEffect(() => {
+    fetchAllProducts()
+      .then(setProducts)
+      .catch((err) => {
+        console.error(err);
+        setProducts([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / productsPerPage));
-  const start = (currentPage - 1) * productsPerPage;
-  const visible = filtered.slice(start, start + productsPerPage);
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchesQuery = p.title.toLowerCase().includes(query.toLowerCase());
+      const matchesCategory =
+        category === "All" || mapToDisplayCategory(p.category) === category;
+      return matchesQuery && matchesCategory;
+    });
+  }, [products, query, category]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  useEffect(() => {
+    setVisibleCount(BATCH_SIZE);
+  }, [category, query]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, filtered.length));
+        }
+      },
+      { rootMargin: "400px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, filtered.length]);
+
+  function handleCategoryChange(next: string) {
+    setCategory(next);
+  }
 
   return (
     <>
@@ -38,42 +72,62 @@ export default function Home({ products = [] }: HomeProps) {
         <title>Shopora — Product Catalog</title>
       </Head>
 
-
       <main className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
-          <Hero />
-          <Categories active={""} onChange={function (): void {
-          throw new Error("Function not implemented.");
-        } } />
+        <Hero />
+        <Categories active={category} onChange={handleCategoryChange} />
+
         {/* grid */}
         <section>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-            {visible.map((p, i) => (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                <ProductCard product={p} />
-              </motion.div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-64 rounded-2xl bg-gray-100 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+              <AnimatePresence>
+                {visible.map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ delay: (i % BATCH_SIZE) * 0.03 }}
+                  >
+                    <ProductCard product={p} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
 
-          {visible.length === 0 && <p className="text-center py-12 text-gray-500">No products found.</p>}
-        </section>
+          {!loading && visible.length === 0 && (
+            <p className="text-center py-12 text-gray-500">
+              No products found.
+            </p>
+          )}
 
-        {/* pagination */}
-        <section className="mt-8 flex justify-center items-center gap-4">
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 rounded bg-gray-100 disabled:opacity-40">Previous</button>
-          <span>Page {currentPage} / {totalPages}</span>
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 rounded bg-gray-100 disabled:opacity-40">Next</button>
+          {!loading && hasMore && (
+            <div ref={sentinelRef} className="flex justify-center py-10">
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <span className="w-4 h-4 border-2 border-gray-300 border-t-[#4F6EF7] rounded-full animate-spin" />
+                Loading more products...
+              </div>
+            </div>
+          )}
+
+          {!loading && !hasMore && filtered.length > BATCH_SIZE && (
+            <p className="text-center py-10 text-sm text-gray-400">
+              You&apos;ve reached the end — {filtered.length} products shown.
+            </p>
+          )}
         </section>
       </main>
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  try {
-    const products = await fetchProducts();
-    return { props: { products } };
-  } catch (err) {
-    console.error(err);
-    return { props: { products: [] } };
-  }
-};
