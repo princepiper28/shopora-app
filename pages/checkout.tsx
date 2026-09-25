@@ -153,18 +153,41 @@ export default function Checkout() {
   async function placeOrder() {
     setIsPlacingOrder(true);
 
-    /*
-      DEMO ONLY
+    try {
+      const response = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: cart.map((item) => ({
+            id: item.id,
+             quantity: item.quantity,
+          })),
+        }),
+      });
 
-      Later this is where you will call your real order API,
-      Supabase, payment gateway, etc.
-    */
+      const data = await response.json();
 
-    await new Promise((resolve) => setTimeout(resolve, 1400));
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to place your order.");
+      }
 
-    clearCart();
-    setIsPlacingOrder(false);
-    setOrderPlaced(true);
+      console.log("Order created:", data);
+
+      clearCart();
+      setOrderPlaced(true);
+    } catch (error) {
+      console.error("Place order error:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to place your order. Please try again."
+      );
+    } finally {
+      setIsPlacingOrder(false);
+    }
   }
 
   if (orderPlaced) {

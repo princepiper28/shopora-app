@@ -7,18 +7,45 @@ import { ShoppingBag } from "lucide-react";
 import { Product } from "@/types/product";
 import ProductCard from "@/components/ProductCard";
 import Categories from "@/components/Categories";
+import { useSession } from "next-auth/react";
 import { fetchAllProducts, mapToDisplayCategory } from "@/lib/api";
 
 const ALL_SECTION_LIMIT = 150;
 
 export default function ShopPage() {
   const router = useRouter();
+  const { status } = useSession();
+
+  const isAuthenticated = status === "authenticated";
+  const authLoading = status === "loading";
+
   const searchQuery =
     typeof router.query.search === "string" ? router.query.search : "";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
+
+  /* =============================================================
+     AUTH GUARD
+
+     Wait for the auth context to finish its initial localStorage
+     read (authLoading) before deciding anything — otherwise every
+     logged-in user gets bounced to /login for a frame on refresh,
+     since `isAuthenticated` starts as false until hydration runs.
+
+     router.replace (not push) so /shop never sits in history
+     underneath /login — same reasoning as the login/register
+     redirect.
+  ============================================================= */
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      router.replace(`/login?redirect=${encodeURIComponent(router.asPath)}`);
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     fetchAllProducts()
@@ -51,6 +78,37 @@ export default function ShopPage() {
     return list;
   }, [products, activeCategory, searchQuery]);
 
+  /* =============================================================
+     AUTH GATE RENDER
+
+     While auth is hydrating, or once we know the user is
+     logged out (and the redirect above is about to fire), show
+     a blank/loading shell instead of the real page. This avoids
+     a flash of product-grid content for logged-out users before
+     the redirect kicks in.
+  ============================================================= */
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 pt-32 pb-20">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 12 }).map((_, i) => {
+            let extra = "";
+            if (i >= 9) extra = "hidden lg:block";
+            else if (i >= 6) extra = "hidden md:block";
+
+            return (
+              <div
+                key={i}
+                className={`h-64 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse ${extra}`}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 pt-32 pb-20">
       {/* =========================
@@ -74,15 +132,25 @@ export default function ShopPage() {
 
       {/* =========================
           Loading State
+
+          12 skeletons, hidden down via responsive classes so the
+          grid keeps ~3 rows regardless of column count instead of
+          overflowing to 4 rows on mobile / looking sparse at 4 cols.
       ========================= */}
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-64 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse"
-            />
-          ))}
+          {Array.from({ length: 12 }).map((_, i) => {
+            let extra = "";
+            if (i >= 9) extra = "hidden lg:block";
+            else if (i >= 6) extra = "hidden md:block";
+
+            return (
+              <div
+                key={i}
+                className={`h-64 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse ${extra}`}
+              />
+            );
+          })}
         </div>
       ) : filtered.length === 0 ? (
         /* =========================

@@ -1,81 +1,76 @@
-// pages/register.tsx
+// pages/login.tsx
 
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/router";
+import { signIn } from "next-auth/react";
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 
 import {
   ArrowRight,
-  Check,
   Eye,
   EyeOff,
   LockKeyhole,
   Mail,
   ShieldCheck,
   Sparkles,
-  UserRound,
 } from "lucide-react";
 
 import { motion } from "framer-motion";
 
 /* ===============================================================
-   REGISTER PAGE
+   LOGIN PAGE
 ================================================================ */
 
-function RegisterPage() {
-  const [name, setName] = useState("");
+function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   /* =============================================================
-     PASSWORD STRENGTH
+     LOGIN SUBMIT
+
+     signIn("credentials", { redirect: false, ... }) hits NextAuth's
+     authorize() callback (pages/api/auth/[...nextauth].ts), which
+     checks the email/password against the real database via
+     Prisma + bcrypt. redirect: false lets us handle the error/
+     success UI ourselves instead of NextAuth doing a hard
+     navigation on failure.
   ============================================================= */
 
-  const passwordStrength =
-    password.length === 0
-      ? 0
-      : password.length < 6
-        ? 1
-        : password.length < 10
-          ? 2
-          : 3;
-
-  /* =============================================================
-     REGISTER SUBMIT
-  ============================================================= */
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!agreeToTerms) {
-      alert("Please agree to the Terms of Service and Privacy Policy.");
+    setError(null);
+    setIsLoading(true);
+
+    const redirectTarget =
+      typeof router.query.redirect === "string"
+        ? router.query.redirect
+        : "/shop";
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      setIsLoading(false);
+      setError("Incorrect email or password.");
       return;
     }
 
-    setIsLoading(true);
-
-    /*
-     * Replace this with your real registration logic.
-     *
-     * Example:
-     *
-     * await registerUser({
-     *   name,
-     *   email,
-     *   password,
-     * });
-     */
-
-    setTimeout(() => {
-      setIsLoading(false);
-      alert(`Creating account for ${name} (${email})`);
-    }, 1200);
+    // router.replace (not push) — /login shouldn't sit in history
+    // underneath /shop.
+    await router.replace(redirectTarget);
   }
 
   return (
@@ -85,11 +80,11 @@ function RegisterPage() {
       ========================================================== */}
 
       <Head>
-        <title>Create Account — Shopora</title>
+        <title>Login — Shopora</title>
 
         <meta
           name="description"
-          content="Create your Shopora account and discover a better way to shop."
+          content="Sign in to your Shopora account and continue shopping."
         />
 
         <meta
@@ -116,10 +111,6 @@ function RegisterPage() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 overflow-hidden"
         >
-          {/* -----------------------------------------------------
-              BLUE GLOW
-          ------------------------------------------------------ */}
-
           <motion.div
             animate={{
               x: [0, 40, -20, 0],
@@ -133,10 +124,6 @@ function RegisterPage() {
             }}
             className="absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-blue-600/20 blur-[120px]"
           />
-
-          {/* -----------------------------------------------------
-              INDIGO GLOW
-          ------------------------------------------------------ */}
 
           <motion.div
             animate={{
@@ -152,10 +139,6 @@ function RegisterPage() {
             className="absolute right-[-180px] top-[15%] h-[600px] w-[600px] rounded-full bg-indigo-600/20 blur-[140px]"
           />
 
-          {/* -----------------------------------------------------
-              CYAN BOTTOM GLOW
-          ------------------------------------------------------ */}
-
           <motion.div
             animate={{
               scale: [1, 1.12, 1],
@@ -169,15 +152,7 @@ function RegisterPage() {
             className="absolute bottom-[-280px] left-[25%] h-[600px] w-[600px] rounded-full bg-cyan-500/10 blur-[130px]"
           />
 
-          {/* -----------------------------------------------------
-              RADIAL LIGHT
-          ------------------------------------------------------ */}
-
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.12),transparent_32%),radial-gradient(circle_at_80%_70%,rgba(99,102,241,0.12),transparent_32%)]" />
-
-          {/* -----------------------------------------------------
-              GRID TEXTURE
-          ------------------------------------------------------ */}
 
           <div
             className="absolute inset-0 opacity-[0.035]"
@@ -187,10 +162,6 @@ function RegisterPage() {
               backgroundSize: "70px 70px",
             }}
           />
-
-          {/* -----------------------------------------------------
-              VIGNETTE
-          ------------------------------------------------------ */}
 
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_25%,rgba(0,0,0,0.28)_100%)]" />
         </div>
@@ -221,8 +192,6 @@ function RegisterPage() {
             aria-label="Shopora home"
             className="group flex items-center gap-3"
           >
-            {/* REAL SHOPORA LOGO */}
-
             <div className="relative h-11 w-11 overflow-hidden rounded-2xl shadow-lg shadow-black/20 transition-transform duration-300 group-hover:scale-105">
               <Image
                 src="/branding/shopora-logo.png"
@@ -234,8 +203,6 @@ function RegisterPage() {
               />
             </div>
 
-            {/* BRAND NAME */}
-
             <span className="hidden text-xl font-bold tracking-[-0.04em] text-white sm:block">
               shopora
             </span>
@@ -243,20 +210,16 @@ function RegisterPage() {
         </motion.div>
 
         {/* =======================================================
-            MAIN CONTENT
+            PAGE CONTENT
         ======================================================== */}
 
         <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px]">
-          <div className="grid min-h-screen w-full lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="grid min-h-screen w-full lg:grid-cols-[1.05fr_0.95fr]">
             {/* ===================================================
                 LEFT — BRAND EXPERIENCE
             ==================================================== */}
 
             <section className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
-              {/* -------------------------------------------------
-                  DECORATIVE CIRCLE
-              -------------------------------------------------- */}
-
               <motion.div
                 animate={{
                   rotate: [0, 8, -8, 0],
@@ -268,12 +231,8 @@ function RegisterPage() {
                   ease: "easeInOut",
                 }}
                 aria-hidden="true"
-                className="absolute left-[8%] top-[18%] h-72 w-72 rounded-full border border-white/10 bg-white/[0.02]"
+                className="absolute left-[10%] top-[20%] h-72 w-72 rounded-full border border-white/10 bg-white/[0.02]"
               />
-
-              {/* -------------------------------------------------
-                  SECONDARY CIRCLE
-              -------------------------------------------------- */}
 
               <motion.div
                 animate={{
@@ -287,10 +246,6 @@ function RegisterPage() {
                 aria-hidden="true"
                 className="absolute bottom-[15%] right-[5%] h-56 w-56 rounded-full border border-blue-400/10"
               />
-
-              {/* -------------------------------------------------
-                  CONTENT
-              -------------------------------------------------- */}
 
               <div className="relative z-10 mt-24 max-w-xl">
                 <motion.div
@@ -308,37 +263,28 @@ function RegisterPage() {
                     ease: [0.22, 1, 0.36, 1],
                   }}
                 >
-                  {/* BADGE */}
-
                   <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70 backdrop-blur-xl">
                     <Sparkles
                       className="h-4 w-4 text-blue-400"
                       aria-hidden="true"
                     />
 
-                    <span>Join the Shopora experience</span>
+                    <span>Welcome back to Shopora</span>
                   </div>
 
-                  {/* HEADLINE */}
-
                   <h1 className="text-5xl font-semibold leading-[1.05] tracking-[-0.05em] text-white xl:text-7xl">
-                    Your shopping.
+                    Everything you want.
+
                     <span className="block bg-gradient-to-r from-blue-400 via-indigo-300 to-white bg-clip-text text-transparent">
-                      Your way.
+                      One beautiful place.
                     </span>
                   </h1>
 
-                  {/* DESCRIPTION */}
-
                   <p className="mt-7 max-w-lg text-base leading-7 text-white/50 xl:text-lg">
-                    Create your Shopora account and unlock a smarter,
-                    more personal way to discover everything you love.
+                    Discover products you love, explore brands you trust,
+                    and enjoy a shopping experience designed around you.
                   </p>
                 </motion.div>
-
-                {/* -------------------------------------------------
-                    BENEFITS
-                -------------------------------------------------- */}
 
                 <motion.div
                   initial={{
@@ -353,33 +299,22 @@ function RegisterPage() {
                     duration: 0.7,
                     delay: 0.4,
                   }}
-                  className="mt-10 space-y-4"
+                  className="mt-10 flex flex-wrap gap-3"
                 >
                   {[
-                    "Personalized shopping experience",
-                    "Save your favorite products",
-                    "Faster checkout and order tracking",
+                    "10K+ Products",
+                    "50+ Brands",
+                    "24H Delivery",
                   ].map((item) => (
                     <div
                       key={item}
-                      className="flex items-center gap-3 text-sm text-white/55"
+                      className="rounded-full border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm text-white/60 backdrop-blur-xl"
                     >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-blue-400/20 bg-blue-500/10">
-                        <Check
-                          className="h-3.5 w-3.5 text-blue-400"
-                          aria-hidden="true"
-                        />
-                      </span>
-
-                      <span>{item}</span>
+                      {item}
                     </div>
                   ))}
                 </motion.div>
               </div>
-
-              {/* -------------------------------------------------
-                  TRUST
-              -------------------------------------------------- */}
 
               <motion.div
                 initial={{
@@ -400,13 +335,13 @@ function RegisterPage() {
                 />
 
                 <span>
-                  Your information is protected with Shopora.
+                  Your account and shopping experience are protected.
                 </span>
               </motion.div>
             </section>
 
             {/* ===================================================
-                RIGHT — REGISTER
+                RIGHT — LOGIN
             ==================================================== */}
 
             <section className="relative flex min-h-screen items-center justify-center px-5 py-28 sm:px-8 lg:px-12 xl:px-20">
@@ -426,21 +361,13 @@ function RegisterPage() {
                   delay: 0.15,
                   ease: [0.22, 1, 0.36, 1],
                 }}
-                className="w-full max-w-[500px]"
+                className="w-full max-w-[480px]"
               >
-                {/* =================================================
-                    REGISTER CARD
-                ================================================== */}
-
                 <div className="relative overflow-hidden rounded-[28px] border border-white/[0.09] bg-white/[0.055] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:p-8 xl:p-10">
-                  {/* CARD GLOW */}
-
                   <div
                     aria-hidden="true"
                     className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-blue-500/10 blur-[70px]"
                   />
-
-                  {/* TOP HIGHLIGHT */}
 
                   <div
                     aria-hidden="true"
@@ -448,11 +375,7 @@ function RegisterPage() {
                   />
 
                   <div className="relative">
-                    {/* =================================================
-                        HEADING
-                    ================================================== */}
-
-                    <div className="mb-7">
+                    <div className="mb-8">
                       <motion.div
                         initial={{
                           opacity: 0,
@@ -467,31 +390,44 @@ function RegisterPage() {
                         }}
                       >
                         <p className="mb-3 text-sm font-medium tracking-[0.18em] text-blue-400">
-                          CREATE ACCOUNT
+                          SIGN IN
                         </p>
 
                         <h2 className="text-3xl font-semibold tracking-[-0.04em] text-white">
-                          Welcome to Shopora
+                          Welcome back
                         </h2>
 
                         <p className="mt-2 text-sm leading-6 text-white/45">
-                          Create your account and start shopping beautifully.
+                          Sign in to continue your Shopora journey.
                         </p>
                       </motion.div>
                     </div>
 
                     {/* =================================================
-                        FORM
+                        ERROR MESSAGE
                     ================================================== */}
+
+                    {error && (
+                      <motion.div
+                        initial={{
+                          opacity: 0,
+                          y: -8,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        role="alert"
+                        className="mb-5 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                      >
+                        {error}
+                      </motion.div>
+                    )}
 
                     <form
                       onSubmit={handleSubmit}
-                      className="space-y-4"
+                      className="space-y-5"
                     >
-                      {/* =================================================
-                          FULL NAME
-                      ================================================== */}
-
                       <motion.div
                         initial={{
                           opacity: 0,
@@ -503,52 +439,6 @@ function RegisterPage() {
                         }}
                         transition={{
                           delay: 0.4,
-                        }}
-                      >
-                        <label
-                          htmlFor="name"
-                          className="mb-2 block text-sm font-medium text-white/70"
-                        >
-                          Full name
-                        </label>
-
-                        <div className="group relative">
-                          <UserRound
-                            className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white/30 transition-colors group-focus-within:text-blue-400"
-                            aria-hidden="true"
-                          />
-
-                          <input
-                            id="name"
-                            name="name"
-                            type="text"
-                            autoComplete="name"
-                            placeholder="Your full name"
-                            value={name}
-                            onChange={(e) =>
-                              setName(e.target.value)
-                            }
-                            className="h-14 w-full rounded-xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition-all placeholder:text-white/25 hover:border-white/15 focus:border-blue-400/60 focus:bg-black/30 focus:ring-4 focus:ring-blue-500/10"
-                            required
-                          />
-                        </div>
-                      </motion.div>
-
-                      {/* =================================================
-                          EMAIL
-                      ================================================== */}
-
-                      <motion.div
-                        initial={{
-                          opacity: 0,
-                          y: 15,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        transition={{
-                          delay: 0.45,
                         }}
                       >
                         <label
@@ -566,8 +456,8 @@ function RegisterPage() {
 
                           <input
                             id="email"
-                            name="email"
                             type="email"
+                            name="email"
                             autoComplete="email"
                             inputMode="email"
                             placeholder="you@example.com"
@@ -581,10 +471,6 @@ function RegisterPage() {
                         </div>
                       </motion.div>
 
-                      {/* =================================================
-                          PASSWORD
-                      ================================================== */}
-
                       <motion.div
                         initial={{
                           opacity: 0,
@@ -595,15 +481,24 @@ function RegisterPage() {
                           y: 0,
                         }}
                         transition={{
-                          delay: 0.5,
+                          delay: 0.46,
                         }}
                       >
-                        <label
-                          htmlFor="password"
-                          className="mb-2 block text-sm font-medium text-white/70"
-                        >
-                          Password
-                        </label>
+                        <div className="mb-2 flex items-center justify-between gap-4">
+                          <label
+                            htmlFor="password"
+                            className="text-sm font-medium text-white/70"
+                          >
+                            Password
+                          </label>
+
+                          <Link
+                            href="/forgot-password"
+                            className="text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
+                          >
+                            Forgot password?
+                          </Link>
+                        </div>
 
                         <div className="group relative">
                           <LockKeyhole
@@ -613,21 +508,20 @@ function RegisterPage() {
 
                           <input
                             id="password"
-                            name="password"
                             type={
                               showPassword
                                 ? "text"
                                 : "password"
                             }
-                            autoComplete="new-password"
-                            placeholder="Create a password"
+                            name="password"
+                            autoComplete="current-password"
+                            placeholder="Enter your password"
                             value={password}
                             onChange={(e) =>
                               setPassword(e.target.value)
                             }
                             className="h-14 w-full rounded-xl border border-white/10 bg-black/20 pl-12 pr-12 text-sm text-white outline-none transition-all placeholder:text-white/25 hover:border-white/15 focus:border-blue-400/60 focus:bg-black/30 focus:ring-4 focus:ring-blue-500/10"
                             required
-                            minLength={6}
                           />
 
                           <button
@@ -657,51 +551,7 @@ function RegisterPage() {
                             )}
                           </button>
                         </div>
-
-                        {/* PASSWORD STRENGTH */}
-
-                        {password.length > 0 && (
-                          <motion.div
-                            initial={{
-                              opacity: 0,
-                              height: 0,
-                            }}
-                            animate={{
-                              opacity: 1,
-                              height: "auto",
-                            }}
-                            className="mt-3"
-                          >
-                            <div className="mb-2 flex gap-1.5">
-                              {[1, 2, 3].map((level) => (
-                                <div
-                                  key={level}
-                                  className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                                    passwordStrength >= level
-                                      ? "bg-blue-400"
-                                      : "bg-white/10"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-
-                            <p className="text-[11px] text-white/30">
-                              {passwordStrength === 1 &&
-                                "Use at least 6 characters."}
-
-                              {passwordStrength === 2 &&
-                                "Good. A longer password is even better."}
-
-                              {passwordStrength === 3 &&
-                                "Strong password."}
-                            </p>
-                          </motion.div>
-                        )}
                       </motion.div>
-
-                      {/* =================================================
-                          TERMS
-                      ================================================== */}
 
                       <motion.div
                         initial={{
@@ -711,55 +561,45 @@ function RegisterPage() {
                           opacity: 1,
                         }}
                         transition={{
-                          delay: 0.56,
+                          delay: 0.52,
                         }}
-                        className="pt-1"
+                        className="flex items-center"
                       >
-                        <label className="flex cursor-pointer items-start gap-3 text-xs leading-5 text-white/40">
+                        <label className="flex cursor-pointer items-center gap-3 text-sm text-white/45">
                           <input
                             type="checkbox"
-                            checked={agreeToTerms}
+                            name="remember"
+                            checked={rememberMe}
                             onChange={(e) =>
-                              setAgreeToTerms(
+                              setRememberMe(
                                 e.target.checked
                               )
                             }
                             className="peer sr-only"
                           />
 
-                          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/20 transition-all peer-checked:border-blue-400 peer-checked:bg-blue-500 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400/40">
-                            {agreeToTerms && (
-                              <Check
+                          <span className="flex h-5 w-5 items-center justify-center rounded-md border border-white/15 bg-black/20 transition-all peer-checked:border-blue-400 peer-checked:bg-blue-500 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400/40">
+                            {rememberMe && (
+                              <svg
+                                viewBox="0 0 20 20"
+                                fill="none"
                                 className="h-3.5 w-3.5 text-white"
-                                strokeWidth={3}
                                 aria-hidden="true"
-                              />
+                              >
+                                <path
+                                  d="M4 10.5L8 14L16 6"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
                             )}
                           </span>
 
-                          <span>
-                            I agree to Shopora&apos;s{" "}
-                            <Link
-                              href="/terms"
-                              className="font-medium text-white/70 transition-colors hover:text-blue-400"
-                            >
-                              Terms of Service
-                            </Link>{" "}
-                            and{" "}
-                            <Link
-                              href="/privacy"
-                              className="font-medium text-white/70 transition-colors hover:text-blue-400"
-                            >
-                              Privacy Policy
-                            </Link>
-                            .
-                          </span>
+                          Remember me
                         </label>
                       </motion.div>
-
-                      {/* =================================================
-                          CREATE ACCOUNT BUTTON
-                      ================================================== */}
 
                       <motion.div
                         initial={{
@@ -771,17 +611,14 @@ function RegisterPage() {
                           y: 0,
                         }}
                         transition={{
-                          delay: 0.62,
+                          delay: 0.58,
                         }}
-                        className="pt-1"
                       >
                         <button
                           type="submit"
                           disabled={isLoading}
                           className="group relative flex h-14 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-white font-semibold text-slate-950 shadow-[0_10px_35px_rgba(255,255,255,0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_15px_45px_rgba(59,130,246,0.2)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                          {/* LIGHT SWEEP */}
-
                           <span
                             aria-hidden="true"
                             className="absolute inset-y-0 -left-20 w-20 rotate-12 bg-white/40 blur-xl transition-all duration-700 group-hover:left-[120%]"
@@ -796,13 +633,13 @@ function RegisterPage() {
                                 />
 
                                 <span>
-                                  Creating account...
+                                  Signing in...
                                 </span>
                               </>
                             ) : (
                               <>
                                 <span>
-                                  Create account
+                                  Sign in
                                 </span>
 
                                 <ArrowRight
@@ -816,10 +653,6 @@ function RegisterPage() {
                       </motion.div>
                     </form>
 
-                    {/* =================================================
-                        DIVIDER
-                    ================================================== */}
-
                     <motion.div
                       initial={{
                         opacity: 0,
@@ -828,9 +661,9 @@ function RegisterPage() {
                         opacity: 1,
                       }}
                       transition={{
-                        delay: 0.68,
+                        delay: 0.65,
                       }}
-                      className="my-6 flex items-center gap-4"
+                      className="my-7 flex items-center gap-4"
                     >
                       <div
                         aria-hidden="true"
@@ -838,7 +671,7 @@ function RegisterPage() {
                       />
 
                       <span className="whitespace-nowrap text-[10px] tracking-[0.12em] text-white/25">
-                        OR SIGN UP WITH
+                        OR CONTINUE WITH
                       </span>
 
                       <div
@@ -846,10 +679,6 @@ function RegisterPage() {
                         className="h-px flex-1 bg-white/[0.08]"
                       />
                     </motion.div>
-
-                    {/* =================================================
-                        SOCIAL SIGNUP
-                    ================================================== */}
 
                     <motion.div
                       initial={{
@@ -861,15 +690,13 @@ function RegisterPage() {
                         y: 0,
                       }}
                       transition={{
-                        delay: 0.73,
+                        delay: 0.7,
                       }}
                       className="grid grid-cols-2 gap-3"
                     >
-                      {/* GOOGLE */}
-
                       <button
                         type="button"
-                        aria-label="Sign up with Google"
+                        aria-label="Continue with Google"
                         className="flex h-12 items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-medium text-white/70 transition-all hover:border-white/20 hover:bg-white/[0.06] hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                       >
                         <GoogleIcon />
@@ -877,11 +704,9 @@ function RegisterPage() {
                         <span>Google</span>
                       </button>
 
-                      {/* APPLE */}
-
                       <button
                         type="button"
-                        aria-label="Sign up with Apple"
+                        aria-label="Continue with Apple"
                         className="flex h-12 items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-medium text-white/70 transition-all hover:border-white/20 hover:bg-white/[0.06] hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                       >
                         <AppleIcon />
@@ -889,10 +714,6 @@ function RegisterPage() {
                         <span>Apple</span>
                       </button>
                     </motion.div>
-
-                    {/* =================================================
-                        LOGIN
-                    ================================================== */}
 
                     <motion.p
                       initial={{
@@ -902,25 +723,21 @@ function RegisterPage() {
                         opacity: 1,
                       }}
                       transition={{
-                        delay: 0.78,
+                        delay: 0.75,
                       }}
-                      className="mt-7 text-center text-sm text-white/40"
+                      className="mt-8 text-center text-sm text-white/40"
                     >
-                      Already have an account?{" "}
+                      Don&apos;t have an account?{" "}
 
                       <Link
-                        href="/login"
+                        href="/register"
                         className="font-semibold text-white transition-colors hover:text-blue-400"
                       >
-                        Sign in
+                        Create one
                       </Link>
                     </motion.p>
                   </div>
                 </div>
-
-                {/* =================================================
-                    SECURITY
-                ================================================== */}
 
                 <motion.div
                   initial={{
@@ -940,7 +757,7 @@ function RegisterPage() {
                   />
 
                   <span>
-                    Secure account creation powered by Shopora
+                    Secure authentication powered by Shopora
                   </span>
                 </motion.div>
               </motion.div>
@@ -956,12 +773,7 @@ function RegisterPage() {
    CUSTOM LAYOUT
 ================================================================ */
 
-/**
- * Register intentionally bypasses the normal Shopora Layout.
- *
- * This prevents the global Header and Footer from appearing.
- */
-RegisterPage.getLayout = function getLayout(page: ReactNode) {
+LoginPage.getLayout = function getLayout(page: ReactNode) {
   return page;
 };
 
@@ -969,7 +781,7 @@ RegisterPage.getLayout = function getLayout(page: ReactNode) {
    EXPORT
 ================================================================ */
 
-export default RegisterPage;
+export default LoginPage;
 
 /* ===============================================================
    GOOGLE ICON

@@ -3,8 +3,9 @@
 import Head from "next/head";
 import type { AppProps } from "next/app";
 import type { ReactNode } from "react";
+import { SessionProvider } from "next-auth/react";
 
-import "@/styles/globals.css";
+import "../styles/globals.css";
 
 import Layout from "@/components/Layout";
 import { CartProvider } from "@/components/CartContext";
@@ -12,16 +13,6 @@ import { WishlistProvider } from "@/components/WishlistContext";
 import { UIProvider } from "@/components/UIContext";
 import { ThemeProvider } from "@/components/ThemeContext";
 
-/**
- * Allows individual pages to define their own layout.
- *
- * Example:
- *
- * LoginPage.getLayout = (page) => page;
- *
- * This lets special pages such as Login, Register,
- * Checkout, etc. bypass the normal Shopora Header/Footer.
- */
 type NextPageWithLayout = AppProps["Component"] & {
   getLayout?: (page: ReactNode) => ReactNode;
 };
@@ -30,22 +21,8 @@ export default function App({
   Component,
   pageProps,
 }: AppProps) {
-  /**
-   * Convert the Next.js page component into our
-   * extended page type that supports getLayout.
-   */
   const PageComponent = Component as NextPageWithLayout;
 
-  /**
-   * Use the page's custom layout when provided.
-   *
-   * Otherwise, automatically use the normal
-   * Shopora Layout containing:
-   *
-   * Header
-   * Page content
-   * Footer
-   */
   const getLayout =
     PageComponent.getLayout ??
     ((page: ReactNode) => <Layout>{page}</Layout>);
@@ -59,18 +36,27 @@ export default function App({
         />
       </Head>
 
-      {/* Global application providers */}
-      <ThemeProvider>
-        <UIProvider>
-          <CartProvider>
-            <WishlistProvider>
-              {getLayout(
-                <Component {...pageProps} />
-              )}
-            </WishlistProvider>
-          </CartProvider>
-        </UIProvider>
-      </ThemeProvider>
+      {/*
+        SessionProvider replaces the old custom AuthProvider.
+        `session` comes from pageProps — populated automatically
+        by NextAuth on pages using getServerSideProps with
+        getServerSession, and refetched client-side otherwise.
+        useSession() anywhere in the tree below this now reflects
+        a real, server-validated session — not a localStorage flag.
+      */}
+      <SessionProvider session={pageProps.session}>
+        <ThemeProvider>
+          <UIProvider>
+            <CartProvider>
+              <WishlistProvider>
+                {getLayout(
+                  <Component {...pageProps} />
+                )}
+              </WishlistProvider>
+            </CartProvider>
+          </UIProvider>
+        </ThemeProvider>
+      </SessionProvider>
     </>
   );
 }

@@ -2,6 +2,9 @@
 
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 import {
   ArrowRight,
@@ -28,6 +31,13 @@ import { motion } from "framer-motion";
 
 /* ================================================================
    DEMO DATA
+
+   Orders, reward points, addresses, and payment methods below
+   are still placeholder content — those need their own database
+   tables (Order, Address, PaymentMethod) and API routes, which is
+   a separate build from auth. Identity fields (name, email,
+   avatar initials, member-since date) are now pulled from the
+   real, database-backed session via useSession().
 ================================================================ */
 
 const orders = [
@@ -58,10 +68,70 @@ const orders = [
 ];
 
 /* ================================================================
+   HELPERS
+================================================================ */
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatMemberSince(iso: string | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+/* ================================================================
    PAGE
 ================================================================ */
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  const isAuthenticated = status === "authenticated";
+  const isLoading = status === "loading";
+
+  /* =============================================================
+     AUTH GUARD — same pattern as /shop: wait for the session
+     check to resolve before deciding, then redirect unauthenticated
+     visitors to /login with a redirect back to /profile.
+  ============================================================= */
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace(
+        `/login?redirect=${encodeURIComponent(router.asPath)}`
+      );
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || !isAuthenticated || !session?.user) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#060914]" />
+    );
+  }
+
+  const user = session.user as {
+    name?: string | null;
+    email?: string | null;
+    createdAt?: string;
+  };
+
+  const displayName = user.name || "Shopora User";
+  const displayEmail = user.email || "";
+  const initials = initialsFromName(displayName);
+  const memberSince = formatMemberSince(user.createdAt);
+
   return (
     <>
       <Head>
@@ -134,12 +204,10 @@ export default function ProfilePage() {
               transition={{ duration: 0.65 }}
               className="relative mb-8 overflow-hidden rounded-[2rem] border border-blue-400/20 bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-950 text-white shadow-2xl shadow-blue-950/10"
             >
-              {/* Decorative glow */}
               <div className="pointer-events-none absolute -right-32 -top-40 h-[450px] w-[450px] rounded-full bg-blue-400/20 blur-[100px]" />
 
               <div className="pointer-events-none absolute bottom-[-150px] left-[35%] h-[300px] w-[300px] rounded-full bg-cyan-400/10 blur-[100px]" />
 
-              {/* Decorative circles */}
               <div className="pointer-events-none absolute right-10 top-10 hidden h-48 w-48 rounded-full border border-white/[0.06] lg:block" />
 
               <div className="pointer-events-none absolute right-20 top-20 hidden h-28 w-28 rounded-full border border-white/[0.06] lg:block" />
@@ -148,20 +216,19 @@ export default function ProfilePage() {
                 <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                   {/* Profile identity */}
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                    {/* Avatar */}
+                    {/* Avatar — initials derived from the real
+                        session name */}
                     <div className="relative shrink-0">
                       <div className="flex h-28 w-28 items-center justify-center rounded-[2rem] bg-gradient-to-br from-blue-400 via-indigo-500 to-cyan-400 p-[2px] shadow-2xl shadow-blue-500/20">
                         <div className="flex h-full w-full items-center justify-center rounded-[1.9rem] bg-slate-900 text-4xl font-black text-white">
-                          JD
+                          {initials}
                         </div>
                       </div>
 
-                      {/* Online indicator */}
                       <span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full border-4 border-indigo-950 bg-emerald-400">
                         <span className="h-1.5 w-1.5 rounded-full bg-white" />
                       </span>
 
-                      {/* Edit */}
                       <button
                         type="button"
                         aria-label="Edit profile photo"
@@ -174,7 +241,7 @@ export default function ProfilePage() {
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
-                          Jane Doe
+                          {displayName}
                         </h2>
 
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-300">
@@ -184,13 +251,13 @@ export default function ProfilePage() {
                       </div>
 
                       <p className="mt-2 text-sm text-slate-300">
-                        jane@example.com
+                        {displayEmail}
                       </p>
 
                       <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-400">
                         <span className="flex items-center gap-1.5">
                           <CalendarDays className="h-3.5 w-3.5" />
-                          Member since 2024
+                          Member since {memberSince}
                         </span>
 
                         <span className="flex items-center gap-1.5">
@@ -201,7 +268,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Edit profile */}
                   <Link
                     href="/settings"
                     className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-100"
@@ -211,7 +277,8 @@ export default function ProfilePage() {
                   </Link>
                 </div>
 
-                {/* Stats */}
+                {/* Stats — still placeholder; needs Order/Wishlist
+                    aggregation queries once those tables exist */}
                 <div className="mt-9 grid grid-cols-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-xl sm:grid-cols-4">
                   <ProfileStat
                     value="24"
@@ -245,12 +312,8 @@ export default function ProfilePage() {
             ====================================================== */}
 
             <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-              {/* ====================================================
-                  LEFT COLUMN
-              ==================================================== */}
-
               <div className="space-y-6">
-                {/* Recent orders */}
+                {/* Recent orders — still demo data */}
                 <motion.section
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -292,7 +355,6 @@ export default function ProfilePage() {
                         className="group p-5 transition hover:bg-slate-50 sm:p-6 dark:hover:bg-white/[0.02]"
                       >
                         <div className="flex items-center gap-4">
-                          {/* Product icon */}
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">
                             <Package className="h-5 w-5" />
                           </div>
@@ -330,7 +392,7 @@ export default function ProfilePage() {
                   </div>
                 </motion.section>
 
-                {/* Personal information */}
+                {/* Personal information — now real */}
                 <motion.section
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -349,31 +411,32 @@ export default function ProfilePage() {
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
                     <InfoCard
                       label="Full name"
-                      value="Jane Doe"
+                      value={displayName}
                       icon={<UserRound className="h-4 w-4" />}
                     />
 
                     <InfoCard
                       label="Email address"
-                      value="jane@example.com"
+                      value={displayEmail}
                       icon={<Wallet className="h-4 w-4" />}
                     />
 
                     <InfoCard
                       label="Phone number"
-                      value="+234 801 234 5678"
+                      value="Not added yet"
                       icon={<Phone className="h-4 w-4" />}
                     />
 
                     <InfoCard
-                      label="Date of birth"
-                      value="March 14, 1998"
+                      label="Member since"
+                      value={memberSince}
                       icon={<CalendarDays className="h-4 w-4" />}
                     />
                   </div>
                 </motion.section>
 
-                {/* Saved address */}
+                {/* Saved address — still demo data, needs an
+                    Address table */}
                 <motion.section
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -398,18 +461,12 @@ export default function ProfilePage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold text-slate-900 dark:text-white">
-                            Home
+                            No saved address yet
                           </p>
-
-                          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                            Default
-                          </span>
                         </div>
 
                         <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                          24 Adeola Odeku Street,
-                          <br />
-                          Victoria Island, Lagos, Nigeria
+                          Add a delivery address to speed up checkout.
                         </p>
                       </div>
                     </div>
@@ -418,18 +475,13 @@ export default function ProfilePage() {
                       href="/addresses"
                       className="text-sm font-semibold text-blue-500"
                     >
-                      Edit address
+                      Add address
                     </Link>
                   </div>
                 </motion.section>
               </div>
 
-              {/* ====================================================
-                  RIGHT COLUMN
-              ==================================================== */}
-
               <aside className="space-y-6">
-                {/* Membership */}
                 <motion.section
                   initial={{ opacity: 0, x: 20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -493,7 +545,6 @@ export default function ProfilePage() {
                   </div>
                 </motion.section>
 
-                {/* Account security */}
                 <motion.section
                   initial={{ opacity: 0, x: 20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -511,29 +562,29 @@ export default function ProfilePage() {
                     <SecurityItem
                       icon={<LockKeyhole className="h-4 w-4" />}
                       title="Password"
-                      text="Last updated 3 months ago"
+                      text="Managed via Shopora sign-in"
                       href="/settings"
                     />
 
                     <SecurityItem
                       icon={<ShieldCheck className="h-4 w-4" />}
                       title="Two-factor authentication"
-                      text="Enabled"
-                      enabled
+                      text="Not set up"
                       href="/settings"
                     />
 
                     <SecurityItem
                       icon={<Bell className="h-4 w-4" />}
                       title="Login alerts"
-                      text="Enabled"
-                      enabled
+                      text="Not set up"
                       href="/settings"
                     />
                   </div>
                 </motion.section>
 
-                {/* Payment methods */}
+                {/* Payment methods — still demo data, needs a
+                    PaymentMethod table + a real payment processor
+                    integration (e.g. Stripe) */}
                 <motion.section
                   initial={{ opacity: 0, x: 20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -549,22 +600,8 @@ export default function ProfilePage() {
                     href="/payment-methods"
                   />
 
-                  <div className="mt-5 flex items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-white/[0.06] dark:bg-white/[0.025]">
-                    <div className="flex h-10 w-14 items-center justify-center rounded-lg bg-slate-900 text-xs font-black text-white dark:bg-white dark:text-slate-900">
-                      VISA
-                    </div>
-
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">
-                        Visa ending in 4242
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-400">
-                        Expires 09/28
-                      </p>
-                    </div>
-
-                    <Check className="h-4 w-4 text-emerald-500" />
+                  <div className="mt-5 rounded-2xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                    No payment methods saved yet.
                   </div>
 
                   <Link
@@ -576,7 +613,6 @@ export default function ProfilePage() {
                   </Link>
                 </motion.section>
 
-                {/* Quick links */}
                 <motion.section
                   initial={{ opacity: 0, x: 20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -616,10 +652,6 @@ export default function ProfilePage() {
                 </motion.section>
               </aside>
             </div>
-
-            {/* ======================================================
-                BOTTOM TRUST STRIP
-            ====================================================== */}
 
             <motion.section
               initial={{ opacity: 0, y: 15 }}

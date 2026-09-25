@@ -1,20 +1,16 @@
 import Head from "next/head";
 import Link from "next/link";
+import type { GetServerSideProps } from "next";
 import { useState } from "react";
 
 import {
-  ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
   BarChart3,
   Bell,
-  Box,
   ChevronDown,
   Clock3,
-  CreditCard,
-  DollarSign,
   Download,
-  Eye,
   Heart,
   Package,
   Plus,
@@ -26,10 +22,20 @@ import {
   TrendingUp,
   Truck,
   Users,
-  Wallet,
 } from "lucide-react";
 
 import { motion } from "framer-motion";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+
+/* ================================================================
+   TYPES
+================================================================ */
+
+type DashboardProps = {
+  userName: string;
+};
 
 /* ================================================================
    DEMO DATA
@@ -49,7 +55,7 @@ const stats = [
     value: "$48,295.00",
     change: "+18.4%",
     trend: "up",
-    icon: DollarSign,
+    icon: TrendingUp,
     description: "vs. last month",
   },
   {
@@ -175,7 +181,7 @@ const activities = [
    PAGE
 ================================================================ */
 
-export default function DashboardPage() {
+export default function DashboardPage({ userName }: DashboardProps) {
   const [period, setPeriod] = useState("Last 30 days");
 
   return (
@@ -227,7 +233,7 @@ export default function DashboardPage() {
                 </div>
 
                 <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl dark:text-white">
-                  Good morning, Shopora.
+                  Good morning, {userName}.
                 </h1>
 
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
@@ -311,6 +317,7 @@ export default function DashboardPage() {
 
                     <div className="text-center">
                       <p className="text-3xl font-black">18.4%</p>
+
                       <p className="mt-1 text-xs text-slate-400">
                         Growth
                       </p>
@@ -377,6 +384,7 @@ export default function DashboardPage() {
               className="mb-8 grid scroll-mt-24 gap-6 xl:grid-cols-[1fr_340px]"
             >
               {/* Revenue Chart */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -429,8 +437,8 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Chart */}
+
                   <div className="relative mt-6 h-[260px] overflow-hidden">
-                    {/* Horizontal guides */}
                     <div className="absolute inset-0 flex flex-col justify-between">
                       {[100, 75, 50, 25, 0].map((value) => (
                         <div
@@ -446,7 +454,6 @@ export default function DashboardPage() {
                       ))}
                     </div>
 
-                    {/* Chart area */}
                     <div className="absolute bottom-0 left-11 right-0 top-0">
                       <svg
                         viewBox="0 0 800 240"
@@ -503,7 +510,8 @@ export default function DashboardPage() {
                 </div>
               </motion.div>
 
-              {/* Quick actions */}
+              {/* Quick Actions */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -582,6 +590,7 @@ export default function DashboardPage() {
 
             <section className="mb-8 grid gap-6 xl:grid-cols-[1fr_340px]">
               {/* Recent Orders */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -610,6 +619,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Desktop table */}
+
                 <div className="hidden overflow-x-auto md:block">
                   <table className="w-full min-w-[700px]">
                     <thead>
@@ -680,6 +690,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Mobile cards */}
+
                 <div className="divide-y divide-slate-100 md:hidden dark:divide-white/[0.06]">
                   {recentOrders.map((order) => (
                     <div key={order.id} className="p-5">
@@ -715,7 +726,8 @@ export default function DashboardPage() {
                 </div>
               </motion.div>
 
-              {/* Order status */}
+              {/* Order Status */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -789,6 +801,7 @@ export default function DashboardPage() {
 
             <section className="grid gap-6 lg:grid-cols-2">
               {/* Top Products */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -832,9 +845,13 @@ export default function DashboardPage() {
 
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                           <span>{product.category}</span>
+
                           <span>•</span>
+
                           <span>{product.sold}</span>
+
                           <span>•</span>
+
                           <span className="flex items-center gap-1">
                             <Star className="h-3 w-3 fill-current text-amber-400" />
                             {product.rating}
@@ -851,6 +868,7 @@ export default function DashboardPage() {
               </motion.div>
 
               {/* Activity */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1008,8 +1026,10 @@ function OrderStatus({ status }: { status: string }) {
   const styles = {
     Delivered:
       "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+
     Processing:
       "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+
     Shipped:
       "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   };
@@ -1089,3 +1109,47 @@ function CheckIcon() {
     </svg>
   );
 }
+
+/* ================================================================
+   SERVER-SIDE AUTH PROTECTION
+================================================================ */
+
+export const getServerSideProps: GetServerSideProps<
+  DashboardProps
+> = async (context) => {
+  const session = await getServerSession(
+    context.req,
+    context.res,
+    authOptions
+  );
+
+  /* --------------------------------------------------------------
+     NO SESSION → SEND USER TO LOGIN
+  -------------------------------------------------------------- */
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: `/login?callbackUrl=${encodeURIComponent(
+          context.resolvedUrl
+        )}`,
+        permanent: false,
+      },
+    };
+  }
+
+  /* --------------------------------------------------------------
+     SESSION EXISTS → LOAD USER NAME
+  -------------------------------------------------------------- */
+
+  const userName =
+    session.user?.name?.trim() ||
+    session.user?.email?.split("@")[0] ||
+    "Shopora";
+
+  return {
+    props: {
+      userName,
+    },
+  };
+};
