@@ -25,6 +25,22 @@ import { useCart, CartItem} from  "@/components/CartContext";
 
 type CheckoutStep = 1 | 2 | 3;
 
+type OrderData = {
+  orderId: string;
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+};
+
+type OrderItemSnapshot = {
+  id: number; 
+  title: string;
+  image: string;
+  price: number;
+  quantity: number;
+};
+
 const STEPS = [
   {
     number: 1,
@@ -75,6 +91,10 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+
+  const [orderData, setOrderData] = useState<OrderData | null>(null);
+
+  const [orderedItems, setOrderedItems] = useState<OrderItemSnapshot[]>([]);
 
   const [shippingInfo, setShippingInfo] = useState({
     firstName: "",
@@ -154,16 +174,19 @@ export default function Checkout() {
     setIsPlacingOrder(true);
 
     try {
+      const itemsSnapshot: OrderItemSnapshot[] = cart.map((item) => ({
+        id: item.id,
+        title: item.title,
+        image: item.image,
+        price: Number(item.price),
+        quantity: item.quantity,
+      }));
+
       const response = await fetch("/api/orders/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: cart.map((item) => ({
-            id: item.id,
-             quantity: item.quantity,
-          })),
+          items: cart.map((item) => ({ id: item.id, quantity: item.quantity })),
         }),
       });
 
@@ -173,18 +196,19 @@ export default function Checkout() {
         throw new Error(data.error || "Unable to place your order.");
       }
 
-      console.log("Order created:", data);
-
+      setOrderData({
+        orderId: data.orderId,
+        subtotal: Number(data.subtotal),
+        shipping: Number(data.shipping),
+        tax: Number(data.tax),
+        total: Number(data.total),
+      });
+      setOrderedItems(itemsSnapshot);
       clearCart();
       setOrderPlaced(true);
     } catch (error) {
       console.error("Place order error:", error);
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Unable to place your order. Please try again."
-      );
+      alert(error instanceof Error ? error.message : "Unable to place your order. Please try again.");
     } finally {
       setIsPlacingOrder(false);
     }
@@ -197,10 +221,14 @@ export default function Checkout() {
           <title>Order Confirmed — Shopora</title>
         </Head>
 
-        <OrderSuccess />
+        <OrderSuccess
+          orderData={orderData}
+          orderedItems={orderedItems}
+        />
       </>
     );
-  }
+ }
+
 
   if (cart.length === 0) {
     return (
@@ -1319,70 +1347,72 @@ function TrustCard({
    ORDER SUCCESS
 ================================================================ */
 
-function OrderSuccess() {
+function OrderSuccess({
+  orderData,
+  orderedItems,
+}: {
+  orderData: OrderData | null;
+  orderedItems: OrderItemSnapshot[];
+}) {
+  const orderReference = orderData
+    ? `SHO-${orderData.orderId.slice(-8).toUpperCase()}`
+    : "SHO-PENDING";
+
   return (
-    <main className="flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-20 dark:bg-[#060914]">
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 rounded-full bg-blue-500/10 blur-[120px]" />
+    <main className="min-h-screen overflow-hidden bg-slate-50 px-4 py-12 text-slate-900 sm:px-6 sm:py-16 lg:px-8 dark:bg-[#060914] dark:text-white">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[-180px] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-emerald-500/[0.07] blur-[140px] dark:bg-emerald-500/[0.1]" />
+        <div className="absolute -left-40 top-1/3 h-[420px] w-[420px] rounded-full bg-blue-500/[0.05] blur-[130px] dark:bg-blue-500/[0.08]" />
+        <div className="absolute -right-40 bottom-0 h-[420px] w-[420px] rounded-full bg-indigo-500/[0.05] blur-[130px] dark:bg-indigo-500/[0.08]" />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 25, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-2xl sm:p-12 dark:border-white/[0.08] dark:bg-white/[0.035]"
-      >
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{
-            delay: 0.2,
-            type: "spring",
-            stiffness: 200,
-          }}
-          className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-2xl shadow-emerald-500/20"
-        >
-          <Check className="h-10 w-10" />
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="mx-auto max-w-3xl text-center">
+          <motion.div initial={{ scale: 0, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.15, type: "spring", stiffness: 190, damping: 14 }} className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-2xl shadow-emerald-500/25">
+            <Check className="h-11 w-11" strokeWidth={3} />
+          </motion.div>
+          <p className="mt-7 text-xs font-black uppercase tracking-[0.22em] text-emerald-500">Order confirmed</p>
+          <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl dark:text-white">Thank you for shopping with Shopora.</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base dark:text-slate-400">Your order has been placed successfully. We&apos;ll keep you updated as your order moves through delivery.</p>
+          <div className="mx-auto mt-7 inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/[0.08] dark:bg-white/[0.035]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500"><Package className="h-4 w-4" /></div>
+            <div className="text-left"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Order reference</p><p className="mt-0.5 font-mono text-sm font-black tracking-wide text-slate-900 dark:text-white">#{orderReference}</p></div>
+          </div>
         </motion.div>
 
-        <p className="mt-7 text-xs font-bold uppercase tracking-[0.2em] text-emerald-500">
-          Order confirmed
-        </p>
-
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
-          Thank you for shopping with Shopora.
-        </h1>
-
-        <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
-          Your order has been placed successfully. We&apos;ll keep you
-          updated as your order moves through delivery.
-        </p>
-
-        <div className="mt-7 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left dark:border-white/[0.06] dark:bg-white/[0.025]">
-          <div className="flex items-center gap-3">
-            <Package className="h-5 w-5 text-blue-500" />
-
-            <div>
-              <p className="text-xs font-bold text-slate-900 dark:text-white">
-                What happens next?
-              </p>
-
-              <p className="mt-1 text-[11px] leading-5 text-slate-400">
-                Your order will be prepared, dispatched, and delivered
-                to your selected address.
-              </p>
+        <motion.div initial={{ opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.15 }} className="mt-10 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-xl shadow-slate-950/[0.04] dark:border-white/[0.08] dark:bg-white/[0.035] dark:shadow-black/20">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:p-6 dark:border-white/[0.06]"><div><h2 className="text-lg font-black text-slate-950 dark:text-white">Purchased items</h2><p className="mt-1 text-xs text-slate-400">{orderedItems.length} {orderedItems.length === 1 ? "product" : "products"} in this order</p></div><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500"><ShoppingBag className="h-5 w-5" /></div></div>
+            <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+              {orderedItems.length > 0 ? orderedItems.map((item) => (
+                <div key={item.id} className="flex gap-4 p-4 sm:p-5">
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-white/[0.06] sm:h-24 sm:w-24"><Image src={item.image} alt={item.title} fill sizes="96px" className="object-cover" /><span className="absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-950 px-1.5 text-[10px] font-black text-white shadow-lg">{item.quantity}</span></div>
+                  <div className="min-w-0 flex-1 py-1"><p className="line-clamp-2 text-sm font-bold leading-5 text-slate-900 dark:text-white">{item.title}</p><p className="mt-2 text-xs text-slate-400">${item.price.toFixed(2)} each · Qty {item.quantity}</p></div>
+                  <div className="shrink-0 py-1 text-right"><p className="text-sm font-black text-slate-900 dark:text-white">${(item.price * item.quantity).toFixed(2)}</p></div>
+                </div>
+              )) : <div className="p-6 text-center"><p className="text-sm text-slate-500 dark:text-slate-400">Your order was created successfully.</p></div>}
             </div>
-          </div>
-        </div>
+          </section>
 
-        <Link
-          href="/shop"
-          className="group mt-7 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5"
-        >
-          Continue shopping
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Link>
-      </motion.div>
+          <aside className="space-y-5 lg:sticky lg:top-8">
+            <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-xl shadow-slate-950/[0.04] dark:border-white/[0.08] dark:bg-white/[0.035] dark:shadow-black/20">
+              <div className="border-b border-slate-100 p-5 dark:border-white/[0.06]"><h2 className="text-lg font-black text-slate-950 dark:text-white">Order summary</h2><p className="mt-1 text-xs text-slate-400">Final order totals</p></div>
+              <div className="space-y-4 p-5">
+                {orderData ? <><SummaryRow label="Subtotal" value={`$${orderData.subtotal.toFixed(2)}`} /><SummaryRow label="Shipping" value={orderData.shipping === 0 ? "Free" : `$${orderData.shipping.toFixed(2)}`} valueClassName={orderData.shipping === 0 ? "text-emerald-500" : ""} /><SummaryRow label="Tax" value={`$${orderData.tax.toFixed(2)}`} /><div className="my-2 h-px bg-slate-100 dark:bg-white/[0.08]" /><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold text-slate-400">Total</p><p className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white">${orderData.total.toFixed(2)}</p></div><span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Confirmed</span></div></> : <p className="text-sm text-slate-500 dark:text-slate-400">Your order was created successfully.</p>}
+              </div>
+            </section>
+
+            <section className="rounded-[1.5rem] border border-blue-400/10 bg-blue-500/[0.04] p-5 dark:bg-blue-500/[0.05]"><div className="flex gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500"><Truck className="h-5 w-5" /></div><div><p className="text-sm font-bold text-slate-900 dark:text-white">What happens next?</p><p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Your order will be prepared, dispatched, and delivered to your selected address. Keep your order reference for future support or tracking.</p></div></div></section>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <Link href="/orders" className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 dark:border-white/[0.1] dark:bg-white/[0.035] dark:text-slate-200 dark:hover:border-blue-500/40 dark:hover:text-blue-400">View orders<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
+              <Link href="/shop" className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 hover:shadow-2xl">Continue shopping<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
+            </div>
+          </aside>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="mx-auto mt-8 flex max-w-3xl items-center justify-center gap-2 text-center text-xs text-slate-400"><ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" /><span>Your order is safely recorded with Shopora. Thank you for choosing us.</span></motion.div>
+      </div>
     </main>
   );
 }

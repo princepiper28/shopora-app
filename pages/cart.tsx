@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Banknote,
   Check,
-  ChevronRight,
   CreditCard,
   Gift,
   Lock,

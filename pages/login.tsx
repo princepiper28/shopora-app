@@ -54,7 +54,7 @@ function LoginPage() {
     const redirectTarget =
       typeof router.query.redirect === "string"
         ? router.query.redirect
-        : "/shop";
+        : "/home";
 
     const result = await signIn("credentials", {
       email,
@@ -69,7 +69,7 @@ function LoginPage() {
     }
 
     // router.replace (not push) — /login shouldn't sit in history
-    // underneath /shop.
+    // underneath /home.
     await router.replace(redirectTarget);
   }
 
