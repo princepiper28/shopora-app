@@ -179,6 +179,7 @@ function MobileShowcase() {
               alt={product.name}
               width={140}
               height={140}
+              unoptimized
               className="aspect-square w-full object-cover"
             />
           </div>
@@ -734,6 +735,7 @@ export default function Hero() {
                     width={220}
                     height={220}
                     priority={index < 2}
+                    unoptimized
                     className="
                       aspect-square
                       w-full

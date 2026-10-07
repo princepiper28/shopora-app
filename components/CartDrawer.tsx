@@ -1,9 +1,10 @@
 // components/CartDrawer.tsx
-
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useCart } from "./CartContext";
+
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -61,7 +62,7 @@ export default function CartDrawer({
                 key={item.id}
                 className="flex items-center gap-3 border-b pb-3"
               >
-                <img
+                <Image
                   src={item.image}
                   alt={item.title}
                   className="h-16 w-16 object-contain"

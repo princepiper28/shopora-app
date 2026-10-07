@@ -194,9 +194,9 @@ export default function ProductCard({
           "
         />
 
-        {/* =======================================================
+        {/* =========================================================
             WISHLIST BUTTON
-        ======================================================= */}
+        ========================================================= */}
         <motion.button
           type="button"
           onClick={(event) => {
@@ -279,14 +279,9 @@ export default function ProductCard({
 
             Wrapper div owns static positioning/centering
             (-translate-x-1/2) so Framer Motion's inline
-            `transform` style — driven by `animate`/`whileHover`/
-            `whileTap` on the button itself — never has to share
+            transform style — driven by animate/whileHover/
+            whileTap on the button itself — never has to share
             the transform property with a Tailwind utility class.
-            That collision (Framer silently overwriting Tailwind's
-            translate classes on tap) was what caused the visible
-            shift/clip. `y` and `opacity` are now fully owned by
-            Framer via animate/whileHover instead of Tailwind's
-            group-hover/translate/opacity classes.
         ======================================================= */}
         <div
           className="
@@ -482,9 +477,9 @@ export default function ProductCard({
           </h3>
         </Link>
 
-        {/* =======================================================
+        {/* =====================================================
             PRICE + MOBILE ADD BUTTON
-        ======================================================= */}
+        ===================================================== */}
         <div
           className="
             mt-4
@@ -506,15 +501,9 @@ export default function ProductCard({
             ${product.price}
           </span>
 
-          {/* =====================================================
+          {/* ===================================================
               MOBILE ADD BUTTON
-
-              Fixed size (w-[100px] h-10). Both label states are
-              absolutely stacked inside a relative inner wrapper
-              so swapping "Add" <-> "Added" can NEVER shift the
-              button or trigger any reflow — this is what
-              guarantees zero horizontal movement.
-          ===================================================== */}
+          =================================================== */}
           <motion.button
             type="button"
             onClick={handleAddToCart}
