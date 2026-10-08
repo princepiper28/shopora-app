@@ -101,7 +101,7 @@ function RegisterPage() {
         return;
       }
 
-      await router.replace("/shop");
+      await router.replace("/home");
     } catch (err) {
       setIsLoading(false);
       setError(
