@@ -56,14 +56,31 @@ export default function Header() {
   ========================================================== */
 
   useMotionValueEvent(scrollY, "change", (latest) => {
-    const previous = scrollY.getPrevious() || 0;
+    const previous = scrollY.getPrevious() ?? 0;
+    const scrollDifference = latest - previous;
 
-    if (latest > previous && latest > 120) {
+  // Always show the header near the top of the page.
+    if (latest <= 80) {
+      setHidden(false);
+      return;
+    }
+
+  // Keep the header accessible while a menu is open.
+    if (mobileMenu || profileMenu) {
+      setHidden(false);
+      return;
+    }
+
+  // Ignore tiny movements to prevent flickering.
+    if (Math.abs(scrollDifference) < 4) return;
+
+  // Hide on scroll down; reveal on scroll up.
+    if (scrollDifference > 0 && latest > 120) {
       setHidden(true);
-    } else {
+    } else if (scrollDifference < 0) {
       setHidden(false);
     }
-  });
+    });
 
   /* =========================================================
      DETECT HERO SECTION EXIT
